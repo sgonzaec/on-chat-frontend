@@ -1,6 +1,5 @@
 export interface User {
-    id: string;
-    name: {
-      name: string
-    };
-  }
+  id: string;
+  socketId?: any;
+  name: string;
+}

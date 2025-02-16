@@ -1,19 +1,47 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { socket } from './infrastructure/socket/socket';
 import JoinChat from './presentation/components/JoinChat';
 import UserList from './presentation/components/UserList';
-import { useUsers } from './adapters/hooks/useUsers';
+import Chat from './presentation/components/Chat';
+import { User } from './domain/models/User';
 
-const App: React.FC = () => {
-  const [connected, setConnected] = useState(false);
-  const users = useUsers();
+function App() {
+  const [username, setUsername] = useState<string | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Escuchar cambios en la lista de usuarios (Nota: Ahora escuchamos 'users' en lugar de 'userList')
+    socket.on('users', (updatedUsers: User[]) => {
+      console.log('Usuarios actualizados:', updatedUsers);
+      setUsers(updatedUsers);
+    });
+
+    return () => {
+      socket.off('users');
+    };
+  }, []);
+
+  const handleJoin = (name: string) => {
+    setUsername(name);
+    socket.emit('join', name); // Usamos 'join' porque en el backend se emite con este evento
+  };
+
+  const handleSelectUser = (recipient: string) => {
+    setSelectedUser(recipient);
+  };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-50">
-      <div className="w-full max-w-md">
-        {connected ? <UserList users={users} /> : <JoinChat onJoin={() => setConnected(true)} />}
-      </div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-200 p-4">
+      {!username ? (
+        <JoinChat onJoin={handleJoin} />
+      ) : selectedUser ? (
+        <Chat username={username} recipient={selectedUser} />
+      ) : (
+        <UserList users={users} onSelectUser={handleSelectUser} />
+      )}
     </div>
   );
-};
+}
 
 export default App;
